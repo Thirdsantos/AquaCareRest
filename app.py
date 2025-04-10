@@ -28,12 +28,9 @@ else:
     exit()
 
 # Firebase Realtime Database references
-refPh = db.reference("Notification/PH")
-refTemp = db.reference("Notification/Temperature")
-refTurb = db.reference("Notification/Turbidity")
 ref = db.reference("Sensors")
 
-# Route to receive sensor data and compare with thresholds
+# Route to receive sensor data and update database without threshold checks
 @app.route("/sensors", methods=["POST"])
 def handle_sensors():
     try:
@@ -48,32 +45,18 @@ def handle_sensors():
         temp_value = data["Temperature"]
         turb_value = data["Turbidity"]
         
-        # Fetch thresholds from Firebase
-        ph_threshold = refPh.get()
-        temp_threshold = refTemp.get()
-        turb_threshold = refTurb.get()
+        # Directly update the Firebase Realtime Database with received values
+        ref.update({
+            "PH": ph_value,
+            "Temperature": temp_value,
+            "Turbidity": turb_value
+        })
 
-        # Check thresholds and only update if values are in range
-        if ph_threshold["Min"] <= ph_value <= ph_threshold["Max"]:
-            ref.update({
-                "PH": ph_value
-            })
-
-        if temp_threshold["Min"] <= temp_value <= temp_threshold["Max"]:
-            ref.update({
-                "Temperature": temp_value
-            })
-        
-        if turb_threshold["Min"] <= turb_value <= turb_threshold["Max"]:
-            ref.update({
-                "Turbidity": turb_value
-            })
-
-        return jsonify({"status": "Data processed successfully."}), 200
+        return jsonify({"status": "Data processed and updated successfully."}), 200
     
     except Exception as e:
         print(f"Error: {e}")
-        return jsonify({"error": "Failed to process data."}), 500
+        return jsonify({"error": "Failed to process and update data."}), 500
 
 if __name__ == "__main__":
     print("Server is running...")
