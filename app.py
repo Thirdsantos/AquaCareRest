@@ -31,6 +31,7 @@ ref = db.reference("Sensors")
 PhAlert = db.reference("Notifications/PH")
 TempAlert = db.reference("Notifications/Temperature")
 TurbAlert = db.reference("Notifications/Turbidity")
+turb_alert_value = TurbAlert.get() 
 
 
 @app.route("/sensors", methods=["POST"])
@@ -54,7 +55,7 @@ def handle_sensors():
             "Turbidity": turb_value
         })
 
-        return jsonify({TurbAlert : "Data processed and updated successfully."}), 200
+        return jsonify({turb_alert_value : "Data processed and updated successfully."}), 200
     
     except Exception as e:
         print(f"Error: {e}")
