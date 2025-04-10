@@ -3,7 +3,7 @@ from flask_cors import CORS  # Import Flask-CORS
 import os
 import json
 import firebase_admin
-from firebase_admin import credentials, db, messaging
+from firebase_admin import credentials, db
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -53,22 +53,21 @@ def handle_sensors():
         temp_threshold = refTemp.get()
         turb_threshold = refTurb.get()
 
-        # Check thresholds and send notifications if breached
-        if ph_threshold["Min"] > ph_value or ph_threshold["Max"] < ph_value:
-            send_fcm_notification("PH Alert", "PH value is out of range!", "ph_alerts")
-        
-        if temp_threshold["Min"] > temp_value or temp_threshold["Max"] < temp_value:
-            send_fcm_notification("Temperature Alert", "Temperature value is out of range!", "temperature_alerts")
-        
-        if turb_threshold["Min"] > turb_value or turb_threshold["Max"] < turb_value:
-            send_fcm_notification("Turbidity Alert", "Turbidity value is out of range!", "turbidity_alerts")
+        # Check thresholds and only update if values are in range
+        if ph_threshold["Min"] <= ph_value <= ph_threshold["Max"]:
+            ref.update({
+                "PH": ph_value
+            })
 
-        # Update the Firebase database with the sensor data
-        ref.update({
-            "PH": ph_value,
-            "Temperature": temp_value,
-            "Turbidity": turb_value
-        })
+        if temp_threshold["Min"] <= temp_value <= temp_threshold["Max"]:
+            ref.update({
+                "Temperature": temp_value
+            })
+        
+        if turb_threshold["Min"] <= turb_value <= turb_threshold["Max"]:
+            ref.update({
+                "Turbidity": turb_value
+            })
 
         return jsonify({"status": "Data processed successfully."}), 200
     
