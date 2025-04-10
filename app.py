@@ -11,6 +11,7 @@ load_dotenv()
 app = Flask(__name__)
 
 
+firebase_credentials = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
 CORS(app, resources={r"/sensors": {"origins": "*"}})  
 
 if firebase_credentials:
