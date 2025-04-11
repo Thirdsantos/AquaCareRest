@@ -19,11 +19,12 @@ if firebase_credentials:
         firebase_admin.initialize_app(cred, {
             "databaseURL": "https://aquamans-47d16-default-rtdb.asia-southeast1.firebasedatabase.app/"
         })
-        print("✅ Firebase Connected Successfully!")
+        print("Firebase Connected Successfully!")
 else:
-    print("❌ Error: GOOGLE_APPLICATION_CREDENTIALS_JSON not found in environment variables.")
+    print("Error: GOOGLE_APPLICATION_CREDENTIALS_JSON not found in environment variables.")
     exit()
 
+# Firebase Refs
 ref = db.reference("Sensors")
 PhAlert = db.reference("Notifications/PH")
 TempAlert = db.reference("Notifications/Temperature")
@@ -32,7 +33,7 @@ ph_tresh = db.reference("Treshold/PH")
 temp_tresh = db.reference("Treshold/Temperature")
 turb_tresh = db.reference("Treshold/Turbidity")
 
-
+# Send FCM notification to topic
 def send_fcm_notification(title, body):
     message = messaging.Message(
         notification=messaging.Notification(
@@ -42,11 +43,12 @@ def send_fcm_notification(title, body):
         topic="sensor_alerts"
     )
     try:
-        messaging.send(message)
+        response = messaging.send(message)
+        print(f"FCM Notification sent: {response}")
     except Exception as e:
-        print(f"❌ Error sending FCM notification: {e}")
+        print(f"Error sending FCM notification: {e}")
 
-
+# Check thresholds and return alerts
 def treshold_checker(data):
     ph_alert_value = PhAlert.get()
     temp_alert_value = TempAlert.get()
@@ -64,23 +66,24 @@ def treshold_checker(data):
 
     if ph_alert_value == True:
         if ph_value < ph_value_tresh["MIN"] or ph_value > ph_value_tresh["MAX"]:
-            alert_messages.append(f"⚠️ PH level out of range: {ph_value}")
+            alert_messages.append(f"PH level out of range: {ph_value}")
 
     if temp_alert_value == True:
         if temp_value < temp_value_tresh["MIN"] or temp_value > temp_value_tresh["MAX"]:
-            alert_messages.append(f"🌡️ Temperature out of range: {temp_value}°C")
+            alert_messages.append(f"Temperature out of range: {temp_value}°C")
 
     if turb_alert_value == True:
         if turb_value < turb_value_tresh["MIN"] or turb_value > turb_value_tresh["MAX"]:
-            alert_messages.append(f"🌫️ Turbidity out of range: {turb_value} NTU")
+            alert_messages.append(f"Turbidity out of range: {turb_value} NTU")
 
+    # If alerts were triggered, send FCM notification
     if alert_messages:
-        body = "\n".join(alert_messages)
-        send_fcm_notification("Sensor Alert 🚨", body)
+        alert_body = "\n".join(alert_messages)
+        send_fcm_notification("Sensor Alert", alert_body)
 
-    return alert_messages  # Return for front-end display
+    return alert_messages
 
-
+# Endpoint for sensor data
 @app.route("/sensors", methods=["POST"])
 def handle_sensors():
     try:
@@ -107,9 +110,9 @@ def handle_sensors():
         }), 200
 
     except Exception as e:
+        print(f"Error: {e}")
         return jsonify({"error": "Failed to process and update data."}), 500
 
-
 if __name__ == "__main__":
-    print("🚀 Server is running...")
+    print("Server is running...")
     app.run(debug=True, host="0.0.0.0", port=5000)
