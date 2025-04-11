@@ -68,14 +68,17 @@ def treshold_checker(data):
     if ph_alert_value == True:
         if ph_value < ph_value_tresh["MIN"] or ph_value > ph_value_tresh["MAX"]:
             alert_messages.append(f"⚠️ PH level out of range: {ph_value} (Allowed: {ph_value_tresh['MIN']}–{ph_value_tresh['MAX']})")
+            print(f"⚠️ PH level out of range: {ph_value}")
 
     if temp_alert_value == True:
         if temp_value < temp_value_tresh["MIN"] or temp_value > temp_value_tresh["MAX"]:
             alert_messages.append(f"🌡️ Temperature out of range: {temp_value}°C (Allowed: {temp_value_tresh['MIN']}–{temp_value_tresh['MAX']})")
+            print(f"⚠️ temp level out of range: {temp_value}")
 
     if turb_alert_value == True:
         if turb_value < turb_value_tresh["MIN"] or turb_value > turb_value_tresh["MAX"]:
             alert_messages.append(f"🌫️ Turbidity out of range: {turb_value} NTU (Allowed: {turb_value_tresh['MIN']}–{turb_value_tresh['MAX']})")
+            print(f"⚠️ turb level out of range: {turb_value}")
 
     # If any alert was triggered, send a notification
     if alert_messages:
