@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS  # Import Flask-CORS
+from flask_cors import CORS
 import os
 import json
 import firebase_admin
@@ -24,7 +24,6 @@ else:
     print("❌ Error: GOOGLE_APPLICATION_CREDENTIALS_JSON not found in environment variables.")
     exit()
 
-# Firebase references
 ref = db.reference("Sensors")
 PhAlert = db.reference("Notifications/PH")
 TempAlert = db.reference("Notifications/Temperature")
@@ -34,9 +33,7 @@ temp_tresh = db.reference("Treshold/Temperature")
 turb_tresh = db.reference("Treshold/Turbidity")
 
 
-# ✅ Send FCM Notification to topic
 def send_fcm_notification(title, body):
-    print("📲 Preparing to send FCM Notification...")
     message = messaging.Message(
         notification=messaging.Notification(
             title=title,
@@ -45,16 +42,12 @@ def send_fcm_notification(title, body):
         topic="sensor_alerts"
     )
     try:
-        response = messaging.send(message)
-        print(f"✅ FCM Notification sent: {response}")
+        messaging.send(message)
     except Exception as e:
         print(f"❌ Error sending FCM notification: {e}")
 
 
-# ✅ Threshold checking + alert logic
 def treshold_checker(data):
-    print("🔍 Running threshold_checker...")
-
     ph_alert_value = PhAlert.get()
     temp_alert_value = TempAlert.get()
     turb_alert_value = TurbAlert.get()
@@ -71,35 +64,27 @@ def treshold_checker(data):
 
     if ph_alert_value == True:
         if ph_value < ph_value_tresh["MIN"] or ph_value > ph_value_tresh["MAX"]:
-            msg = f"⚠️ PH level out of range: {ph_value} (Allowed: {ph_value_tresh['MIN']}–{ph_value_tresh['MAX']})"
-            alert_messages.append(msg)
-            print(msg)
+            alert_messages.append(f"⚠️ PH level out of range: {ph_value}")
 
     if temp_alert_value == True:
         if temp_value < temp_value_tresh["MIN"] or temp_value > temp_value_tresh["MAX"]:
-            msg = f"🌡️ Temperature out of range: {temp_value}°C (Allowed: {temp_value_tresh['MIN']}–{temp_value_tresh['MAX']})"
-            alert_messages.append(msg)
-            print(msg)
+            alert_messages.append(f"🌡️ Temperature out of range: {temp_value}°C")
 
     if turb_alert_value == True:
         if turb_value < turb_value_tresh["MIN"] or turb_value > turb_value_tresh["MAX"]:
-            msg = f"🌫️ Turbidity out of range: {turb_value} NTU (Allowed: {turb_value_tresh['MIN']}–{turb_value_tresh['MAX']})"
-            alert_messages.append(msg)
-            print(msg)
+            alert_messages.append(f"🌫️ Turbidity out of range: {turb_value} NTU")
 
-    # If any alert was triggered, send a notification
     if alert_messages:
-        alert_body = "\n".join(alert_messages)
-        send_fcm_notification("Sensor Alert 🚨", alert_body)
-    else:
-        print("✅ All values within threshold.")
+        body = "\n".join(alert_messages)
+        send_fcm_notification("Sensor Alert 🚨", body)
+
+    return alert_messages  # Return for front-end display
 
 
 @app.route("/sensors", methods=["POST"])
 def handle_sensors():
     try:
         data = request.json
-        print("📥 Received sensor data:", data)
 
         if "PH" not in data or "Temperature" not in data or "Turbidity" not in data:
             return jsonify({"error": "Missing required data fields"}), 400
@@ -108,7 +93,7 @@ def handle_sensors():
         temp_value = data["Temperature"]
         turb_value = data["Turbidity"]
 
-        treshold_checker(data)
+        alerts = treshold_checker(data)
 
         ref.update({
             "PH": ph_value,
@@ -116,13 +101,12 @@ def handle_sensors():
             "Turbidity": turb_value
         })
 
-        print("✅ Data updated in Firebase.")
-        return jsonify({"Response": "Data processed and updated successfully."}), 200
+        return jsonify({
+            "Response": "Data processed and updated successfully.",
+            "Alerts": alerts
+        }), 200
 
     except Exception as e:
-        import traceback
-        print("❌ Error in /sensors route:")
-        traceback.print_exc()
         return jsonify({"error": "Failed to process and update data."}), 500
 
 
